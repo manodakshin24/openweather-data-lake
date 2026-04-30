@@ -1,0 +1,8 @@
+requests
+google-cloud-storage
+pandas
+pyarrow
+google-cloud-bigquery
+google-cloud-bigquery-storage
+google-cloud-logging
+google-cloud-error-reporting
