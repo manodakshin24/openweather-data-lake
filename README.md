@@ -76,6 +76,3 @@ Run weather_gold.sql in BigQuery Console (or bq query) to create:
 - Do not commit .env or service account key files.
 - Rotate keys immediately if exposed.
 
-## GCS Path Layout
-- Bronze: bronze/city=<city>/year=<YYYY>/month=<MM>/day=<DD>/<timestamp>.json
-- Silver: silver/city=<city>/year=<YYYY>/month=<MM>/day=<DD>/<timestamp>.parquet
