@@ -41,16 +41,17 @@ source virtualEnv/bin/activate
 pip install -r requirements.txt
 ```
 
-Configuration
+Configuration:
 Create a local .env file (do not commit it):
+
 OPENWEATHER_API_KEY=[insert_your_openweather_api_key_here]
 WEATHER_BUCKET=weather-data-dakshin-2026
 
 Current scripts use:
 
-OPENWEATHER_API_KEY for API access
-WEATHER_BUCKET in Silver
-BUCKET_NAME constant in Bronze (can be changed to use env for consistency)
+- OPENWEATHER_API_KEY for API access
+- WEATHER_BUCKET in Silver
+- BUCKET_NAME constant in Bronze (can be changed to use env for consistency)
 If needed, export vars manually:
 
 export OPENWEATHER_API_KEY="your_openweather_api_key"

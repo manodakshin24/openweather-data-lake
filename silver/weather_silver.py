@@ -33,27 +33,27 @@ def extract_city_from_key(key):
         return parts[1].split("=", 1)[1]
     return "unknown"
 
-def transform(record, city):
+def transform(item, city, country):
     try:
-        event_ts = datetime.fromtimestamp(record["dt"], tz=timezone.utc)
-        weather_list = record.get("weather", [])
+        event_ts = datetime.fromtimestamp(item["dt"], tz=timezone.utc)
+        weather_list = item.get("weather", [])
         weather_main = weather_list[0]["main"] if weather_list else None
         weather_desc = weather_list[0].get("description") if weather_list else None
 
         return {
             "city": city,
-            "country": record.get("sys", {}).get("country"),
-            "temperature": record["main"]["temp"],
-            "humidity": record["main"]["humidity"],
-            "pressure": record["main"].get("pressure"),
-            "wind_speed": record.get("wind", {}).get("speed"),
+            "country": country,
+            "temperature": item["main"]["temp"],
+            "humidity": item["main"]["humidity"],
+            "pressure": item["main"].get("pressure"),
+            "wind_speed": item.get("wind", {}).get("speed"),
             "weather": weather_main,
             "weather_description": weather_desc,
             "event_timestamp_utc": event_ts.isoformat(),
             "ingested_at_utc": datetime.now(timezone.utc).isoformat(),
-        }, event_ts
+        }
     except KeyError:
-        return None, None
+        return None
 
 def write_parquet_to_gcs(df, output_blob_name):
     # Write parquet in-memory, then upload to GCS
@@ -67,13 +67,22 @@ def write_parquet_to_gcs(df, output_blob_name):
 def process_file(key):
     data = read_json_from_gcs(key)
     city = extract_city_from_key(key)
+    country = data.get("city", {}).get("country")
 
-    transformed, event_ts = transform(data, city)
-    if not transformed:
-        print(f"Skipping malformed record: {key}")
+    rows = []
+    event_ts_list = []
+
+    for item in data.get("list", []):
+        row = transform(item, city, country)
+        if row:
+            rows.append(row)
+            event_ts_list.append(datetime.fromisoformat(row["event_timestamp_utc"]))
+
+    if not rows:
+        print(f"Skipping malformed forecast file: {key}")
         return
 
-    df = pd.DataFrame([transformed])
+    df = pd.DataFrame(rows)
 
     df = df.astype({
         "temperature": "float64",
@@ -88,10 +97,11 @@ def process_file(key):
         "ingested_at_utc": "string",
     })
 
-    year = event_ts.strftime("%Y")
-    month = event_ts.strftime("%m")
-    day = event_ts.strftime("%d")
-    ts = event_ts.strftime("%Y%m%dT%H%M%SZ")
+    latest_ts = max(event_ts_list)
+    year = latest_ts.strftime("%Y")
+    month = latest_ts.strftime("%m")
+    day = latest_ts.strftime("%d")
+    ts = latest_ts.strftime("%Y%m%dT%H%M%SZ")
 
     output_key = (
         f"{SILVER_PREFIX}city={city}/"
